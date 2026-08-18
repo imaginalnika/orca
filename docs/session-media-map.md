@@ -1,20 +1,31 @@
 # Session media map
 
-Per Codex / Claude Code session, not per worktree. One JSON sidecar both Orca and the agent read.
+One live buffer per Codex / Claude Code session. Orca is a viewport. The agent reads and writes the same document.
 
-## Why
+## Law (this tool)
 
-Orca's composer already attaches images to the *next* send. That is not a session library, and it is not video. Spatula takes and other artifacts belong to a live agent tab for the life of that chat.
+- Multimedia belongs to a **session**, not a worktree.
+- The map is the document. A failed video decode is renderer recovery, not a second source of truth.
+- No detached picker, no CloudKit-only, no public KV, no page the agent cannot HTTP.
 
-## Path
+## The document
+
+Host-local persistence (not a replica):
 
 ```
 /workspace/codex-sessions/<session_id>/media.json
 ```
 
-`session_id` is the Codex/Claude session id (same id Orca used to `codex --yolo resume …`). Agents already write `status.json` next to this.
+`session_id` is the Codex/Claude id used to resume that tab. Env override: `ORCA_MEDIA_MAP`.
 
-Env override: `ORCA_MEDIA_MAP` = absolute path to that file.
+The **same** document over HTTP on the Orca host (loopback, not public):
+
+```
+GET /session/<session_id>/media
+PUT /session/<session_id>/media
+```
+
+Orca UI and the agent both hit this. PUT replaces the buffer. Writers who only append should GET, append one item, PUT. Do not keep an in-app copy that later syncs.
 
 ## Schema (v1)
 
@@ -36,22 +47,16 @@ Env override: `ORCA_MEDIA_MAP` = absolute path to that file.
 ```
 
 - `kind`: `video` | `image` | `audio`
-- `path`: absolute, readable on the Orca host
+- `path`: absolute on the Orca host
 - `id`: stable, unique inside the session
-- Writers append. Never rewrite another writer's item.
-- This file is the document. No second replica in app state.
+- `source`: `with-spatula` | `agent` | `orca`
+- New fields get a short comment above them in any generated helper.
 
 ## Who writes
 
-- **with-spatula** (and any rec wrapper): when a take lands, append one item (`source: "with-spatula"`).
-- The agent may append its own (`source: "agent"`).
+- **with-spatula**: when a take lands, append one item.
+- The agent may append (`source: "agent"`).
 - Orca may append user-picked files (`source: "orca"`).
-
-## Who reads
-
-- **Agent**: `Read` the JSON. Paths in `items[].path` are real files.
-- **Orca desktop**: watch the file for the focused tab's `session_id`.
-- **Orca mobile**: host serves the map + bytes over the existing mobile RPC. Phone never owns the document.
 
 ## UI (mobile portrait)
 
@@ -59,10 +64,12 @@ Composer action row, left of mic:
 
 `[media] … [mic] [send]`
 
-Media button lists `items` for this session. Tap an item: play/show in a bottom sheet. That sheet can go fullscreen.
+Media button lists `items` from this buffer. Tap: show at the bottom. That sheet can go fullscreen.
+
+Pending-send image attach stays as-is. This map is the session library.
 
 ## Out of scope (v1)
 
-- CloudKit / public pastebin / a second KV.
 - Sharing one map across all tabs on the same worktree.
-- Replacing pending-send image attach.
+- A second install path.
+- Full-page restart to pick up a new item (inject / watch the buffer).
