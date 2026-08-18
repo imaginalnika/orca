@@ -30,6 +30,7 @@ vi.mock('lucide-react-native', () => ({
   ChevronLeft: 'ChevronLeft',
   ChevronRight: 'ChevronRight',
   ImagePlus: 'ImagePlus',
+  Images: 'Images',
   Mic: 'Mic',
   Square: 'Square',
   X: 'X'
@@ -407,5 +408,32 @@ describe('MobileNativeChatComposer', () => {
     expect(mic().props.onPress).toBe(onMicPress)
     expect(mic().props.onPressIn).toBeUndefined()
     expect(mic().props.onPressOut).toBeUndefined()
+  })
+
+  it('places the session media button immediately left of mic', async () => {
+    const onOpenMediaLibrary = vi.fn()
+    await act(async () => {
+      renderer = create(
+        createElement(MobileNativeChatComposer, {
+          value: '',
+          onChangeText: vi.fn(),
+          onSend: vi.fn().mockResolvedValue(true),
+          onAttachImage: vi.fn(),
+          onOpenMediaLibrary,
+          onMicPress: vi.fn()
+        })
+      )
+    })
+    const actions = renderer!.root.findByProps({ testID: 'native-chat-composer-actions' })
+    const labels = actions.findAll((node) => node.type === 'Pressable').map((node) => {
+      const label = (node.props as { accessibilityLabel?: string }).accessibilityLabel
+      return label
+    })
+    expect(labels).toEqual(['Attach image', 'Session media', 'Dictate', 'Send message'])
+    const media = renderer!.root.find(
+      (node) => node.type === 'Pressable' && node.props.accessibilityLabel === 'Session media'
+    ) as { props: { onPress: () => void } }
+    media.props.onPress()
+    expect(onOpenMediaLibrary).toHaveBeenCalledOnce()
   })
 })

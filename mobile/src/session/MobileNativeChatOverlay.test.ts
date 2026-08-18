@@ -11,6 +11,10 @@ vi.mock('react-native', () => ({
 }))
 
 vi.mock('./MobileNativeChatView', () => ({ MobileNativeChatView: 'ChatView' }))
+vi.mock('./MobileSessionMediaLibrary', () => ({ MobileSessionMediaLibrary: 'SessionMediaLibrary' }))
+vi.mock('./use-mobile-session-media-library', () => ({
+  useMobileSessionMediaLibrary: () => ({ openList: () => {} })
+}))
 
 function assistantTurn(id: string, text: string): NativeChatMessage {
   return { id, role: 'assistant', blocks: [{ type: 'text', text }], timestamp: 0, source: 'hook' }

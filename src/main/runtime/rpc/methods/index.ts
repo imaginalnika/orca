@@ -17,6 +17,7 @@ import { ACCOUNT_METHODS } from './accounts'
 import { PREFLIGHT_METHODS } from './preflight'
 import { COMPUTER_METHODS } from './computer'
 import { SESSION_TAB_METHODS } from './session-tabs'
+import { SESSION_MEDIA_MAP_METHODS } from './session-media-map'
 import { NATIVE_CHAT_METHODS } from './native-chat'
 import { FILE_METHODS } from './files'
 import { GIT_METHODS } from './git'
@@ -65,6 +66,7 @@ export const ALL_RPC_METHODS: readonly RpcAnyMethod[] = [
   ...PREFLIGHT_METHODS,
   ...COMPUTER_METHODS,
   ...SESSION_TAB_METHODS,
+  ...SESSION_MEDIA_MAP_METHODS,
   ...NATIVE_CHAT_METHODS,
   ...FILE_METHODS,
   ...GIT_METHODS,

@@ -5,6 +5,8 @@ import { foldMobileNativeChatMessages } from './mobile-native-chat-render-data'
 import type { MobileNativeChatImageAttachments } from './use-mobile-native-chat-image-attachments'
 import type { MobileNativeChatController } from './use-mobile-native-chat-controller'
 import { useMobileNativeChatStreamingBubble } from './use-mobile-native-chat-streaming-bubble'
+import { MobileSessionMediaLibrary } from './MobileSessionMediaLibrary'
+import { useMobileSessionMediaLibrary } from './use-mobile-session-media-library'
 
 type Props = {
   controller: MobileNativeChatController
@@ -53,6 +55,10 @@ export function MobileNativeChatOverlay({
     controller.nativeChatStreamScopeKey,
     controller.nativeChatStreamLive
   )
+  const mediaLibrary = useMobileSessionMediaLibrary({
+    client: controller.nativeChatClient,
+    sessionId: controller.nativeChatSessionId
+  })
   if (!controller.showNativeChat) {
     return null
   }
@@ -86,6 +92,7 @@ export function MobileNativeChatOverlay({
         composerText={controller.chatComposerText}
         onComposerTextChange={controller.setChatComposerText}
         onAttachImage={() => void images.attachImage('library')}
+        onOpenMediaLibrary={mediaLibrary.openList}
         attachments={images.attachments}
         onRemoveAttachment={images.removeAttachment}
         isAttaching={images.isAttaching}
@@ -102,6 +109,7 @@ export function MobileNativeChatOverlay({
         sessionOptions={controller.nativeChatSessionOptions}
         keyboardInset={keyboardInset}
       />
+      <MobileSessionMediaLibrary library={mediaLibrary} />
     </View>
   )
 }

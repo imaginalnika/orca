@@ -257,6 +257,8 @@ export function useMobileNativeChatController(args: {
     showNativeChat,
     showNativeChatRef,
     nativeChatAgent: activeChatResolution?.agent ?? null,
+    nativeChatSessionId: activeChatSessionId,
+    nativeChatClient: client,
     chatComposerText,
     setChatComposerText,
     chatPending,
