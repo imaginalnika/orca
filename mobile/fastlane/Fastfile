@@ -32,6 +32,10 @@ BUNDLE_ID = "com.stably.orca.mobile"
 INTERNAL_TESTFLIGHT_BUNDLE_ID = "games.imaginal.orca"
 INTERNAL_TESTFLIGHT_APP_NAME = "Orca Internal"
 INTERNAL_TESTFLIGHT_SKU = "orca-internal-ios"
+INTERNAL_TESTFLIGHT_TESTER_EMAILS = [
+  "joshchonpc@gmail.com",
+  "joshchonpc@naver.com",
+].freeze
 TESTFLIGHT_GROUPS = ["peeps"].freeze
 DEFAULT_TESTFLIGHT_CHANGELOG = "Latest Orca Mobile updates and fixes.".freeze
 TESTFLIGHT_PROCESSING_TIMEOUT_SECONDS = 20 * 60
@@ -161,6 +165,27 @@ def revoke_leftover_ios_distribution_certificates!
     UI.message("Revoking #{certificate_type} certificate #{certificate.id}")
     certificate.delete!
   end
+end
+
+def assign_internal_testers_to_internal_group!(app:)
+  internal_group = app.get_beta_groups.find(&:is_internal_group)
+  UI.user_error!("Could not find an internal TestFlight group for #{INTERNAL_TESTFLIGHT_BUNDLE_ID}") unless internal_group
+
+  testers_by_email = app
+    .get_beta_testers
+    .each_with_object({}) { |tester, memo| memo[tester.email.downcase] = tester }
+  missing_emails = INTERNAL_TESTFLIGHT_TESTER_EMAILS.reject { |email| testers_by_email.key?(email.downcase) }
+  unless missing_emails.empty?
+    UI.user_error!(
+      "Missing internal beta tester(s) in App Store Connect: #{missing_emails.join(', ')}. " \
+      "Ensure they are present as internal testers before rerunning.",
+    )
+  end
+
+  Spaceship::ConnectAPI.post_beta_tester_assignment(
+    beta_group_id: internal_group.id,
+    beta_tester_ids: INTERNAL_TESTFLIGHT_TESTER_EMAILS.map { |email| testers_by_email.fetch(email.downcase).id },
+  )
 end
 
 platform :ios do
@@ -380,5 +405,9 @@ platform :ios do
       distribute_external: false,
       notify_external_testers: false,
     )
+
+    app = Spaceship::ConnectAPI::App.find(INTERNAL_TESTFLIGHT_BUNDLE_ID)
+    UI.user_error!("Could not find App Store Connect app #{INTERNAL_TESTFLIGHT_BUNDLE_ID}") unless app
+    assign_internal_testers_to_internal_group!(app: app)
   end
 end
