@@ -1,10 +1,7 @@
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises'
 import { dirname } from 'node:path'
-import {
-  emptySessionMediaMap,
-  parseSessionMediaMap,
-  type SessionMediaMap
-} from '../../shared/session-media-map'
+import { emptySessionMediaMap, type SessionMediaMap } from '../../shared/session-media-map'
+import { parseSessionMediaMap } from './session-media-map-schema'
 import { resolveSessionMediaMapTarget } from './session-media-map-resolve'
 import { sessionMediaMapRoot } from './session-media-map-root'
 

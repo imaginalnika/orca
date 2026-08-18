@@ -1,12 +1,19 @@
 import { useCallback, useEffect, useState } from 'react'
-import { buildImageDataUri } from '../../../src/shared/image-data-uri'
-import {
-  parseSessionMediaMap,
-  type SessionMediaItemKind,
-  type SessionMediaMapItem
-} from '../../../src/shared/session-media-map'
-import type { RpcClient } from '../transport/rpc-client'
-import type { RpcSuccess } from '../transport/types'
+
+type MediaRpcClient = {
+  sendRequest: (method: string, params?: unknown) => Promise<{ ok: boolean; result?: unknown }>
+}
+
+export type SessionMediaItemKind = 'video' | 'image' | 'audio'
+
+export type SessionMediaMapItem = {
+  id: string
+  kind: SessionMediaItemKind
+  path: string
+  label: string
+  created_at: string
+  source: 'with-spatula' | 'agent' | 'orca'
+}
 
 export type SessionMediaPreview =
   | { status: 'idle' }
@@ -30,7 +37,7 @@ export type MobileSessionMediaLibrary = {
 const EMPTY_ITEMS: SessionMediaMapItem[] = []
 
 export function useMobileSessionMediaLibrary(args: {
-  client: RpcClient | null
+  client: MediaRpcClient | null
   sessionId: string | null
 }): MobileSessionMediaLibrary {
   const { client, sessionId } = args
@@ -58,11 +65,8 @@ export function useMobileSessionMediaLibrary(args: {
       setItems(EMPTY_ITEMS)
       return
     }
-    try {
-      setItems(parseSessionMediaMap((response as RpcSuccess).result).items)
-    } catch {
-      setItems(EMPTY_ITEMS)
-    }
+    const items = sessionMediaMapItems(response.result)
+    setItems(items)
   }, [client, sessionId])
 
   const openList = useCallback(() => {
@@ -83,7 +87,7 @@ export function useMobileSessionMediaLibrary(args: {
       void client
         .sendRequest('session.media.readItem', { id: sessionId, itemId: item.id })
         .then((response) => {
-          setPreview(previewFromReadItem(item, response.ok ? (response as RpcSuccess).result : null))
+          setPreview(previewFromReadItem(item, response.ok ? response.result : null))
         })
         .catch(() => {
           setPreview({ status: 'decode_failed', kind: item.kind, label: item.label })
@@ -127,14 +131,19 @@ function previewFromReadItem(item: SessionMediaMapItem, result: unknown): Sessio
   if (body.ok !== true || typeof body.content !== 'string') {
     return { status: 'decode_failed', kind: item.kind, label: item.label }
   }
-  const dataUri =
-    item.kind === 'image'
-      ? buildImageDataUri(body.mimeType, body.content)
-      : mediaDataUri(body.mimeType, body.content)
+  const dataUri = mediaDataUri(body.mimeType, body.content)
   if (!dataUri) {
     return { status: 'decode_failed', kind: item.kind, label: item.label }
   }
   return { status: 'ready', kind: item.kind, label: item.label, dataUri }
+}
+
+function sessionMediaMapItems(value: unknown): SessionMediaMapItem[] {
+  if (!value || typeof value !== 'object' || !('items' in value)) {
+    return EMPTY_ITEMS
+  }
+  const items = (value as { items?: SessionMediaMapItem[] }).items
+  return Array.isArray(items) ? items : EMPTY_ITEMS
 }
 
 function mediaDataUri(mimeType: string | undefined, content: string): string | null {

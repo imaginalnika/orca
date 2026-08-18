@@ -24,7 +24,7 @@ export function MobileSessionMediaLibrary({ library }: Props): React.JSX.Element
           label: item.label || item.id,
           detail: item.kind
         }))}
-        selectedId={selectedItem?.id ?? ''}
+        selectedId={library.selectedItem?.id ?? ''}
         onSelect={(row) => {
           const item = library.items.find((candidate) => candidate.id === row.id)
           if (item) {
@@ -35,7 +35,7 @@ export function MobileSessionMediaLibrary({ library }: Props): React.JSX.Element
         renderIcon={() => <Images size={16} color={colors.textSecondary} strokeWidth={2} />}
       />
       <BottomDrawer
-        visible={viewerVisible && !fullscreen}
+        visible={viewerVisible && !library.fullscreen}
         onClose={library.closeViewer}
         dragContentToDismiss
         contentScrollable={false}
@@ -48,7 +48,7 @@ export function MobileSessionMediaLibrary({ library }: Props): React.JSX.Element
           />
         ) : null}
       </BottomDrawer>
-      {viewerVisible && fullscreen ? (
+      {viewerVisible && library.fullscreen ? (
         <View style={styles.fullscreen} testID="session-media-fullscreen">
           <SessionMediaViewerBody
             key={`${library.selectedItem?.id}-full`}
@@ -104,7 +104,9 @@ function SessionMediaViewerBody({
         {preview.status === 'loading' ? (
           <Text style={styles.recovery}>Loading…</Text>
         ) : showRecovery ? (
-          <Text style={styles.recovery}>Couldn’t decode this take. The map still has the path.</Text>
+          <Text style={styles.recovery}>
+            Couldn’t decode this take. The map still has the path.
+          </Text>
         ) : preview.status === 'ready' && preview.kind === 'image' ? (
           <Image
             source={{ uri: preview.dataUri }}
@@ -120,7 +122,9 @@ function SessionMediaViewerBody({
             onError={() => setDecodeFailed(true)}
           />
         ) : (
-          <Text style={styles.recovery}>Couldn’t decode this take. The map still has the path.</Text>
+          <Text style={styles.recovery}>
+            Couldn’t decode this take. The map still has the path.
+          </Text>
         )}
       </View>
     </View>

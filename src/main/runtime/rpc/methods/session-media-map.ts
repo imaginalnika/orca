@@ -4,7 +4,7 @@ import {
   writeSessionMediaMap
 } from '../../../session-media-map/session-media-map-document'
 import { readSessionMediaItemBytes } from '../../../session-media-map/session-media-map-item-bytes'
-import { sessionMediaMapSchema } from '../../../../shared/session-media-map'
+import { sessionMediaMapSchema } from '../../../session-media-map/session-media-map-schema'
 import { defineMethod, type RpcMethod } from '../core'
 import { requiredString } from '../schemas'
 
