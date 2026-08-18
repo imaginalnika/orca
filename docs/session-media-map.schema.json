@@ -4,6 +4,7 @@
   "type": "object",
   "required": [
     "version",
+    "tab",
     "session_id",
     "items"
   ],
@@ -60,6 +61,11 @@
           }
         }
       }
+    },
+    "tab": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Wrapper tab id, e.g. qa09"
     }
   }
 }
