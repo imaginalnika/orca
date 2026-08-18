@@ -68,6 +68,13 @@ Media button lists `items` from this buffer. Tap: show at the bottom. That sheet
 
 Pending-send image attach stays as-is. This map is the session library.
 
+
+## Hosting
+
+Today a Codex instance is an Orca **terminal tab** (`codex --yolo resume …` on `/workspace/deathhammer`). Josh’s product is **chat chrome around that tab**, not files hung off the TUI. The composer (media left of mic, then mic, then send) is that chrome. The TUI stays; the map attaches to the session id, and the chrome is how a person sees it.
+
+Do not `worktree create` for Deathhammer agents. Prefer `orca` CLI / RuntimeClient RPCs over forging `orchestration.db`. Do not put shipped cutscenes (`deathhammer/art/cutscene/`) on the map — only spatula takes.
+
 ## Out of scope (v1)
 
 - Sharing one map across all tabs on the same worktree.
