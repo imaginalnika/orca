@@ -10,20 +10,24 @@ One live buffer per Codex / Claude Code session. Orca is a viewport. The agent r
 
 ## The document
 
-Host-local persistence (not a replica):
+Host-local persistence (not a replica), keyed by the existing wrapper tab (`qa01`, `qa03`, …), next to `status.json`:
 
 ```
-/workspace/codex-sessions/<session_id>/media.json
+/workspace/codex-sessions/<qaXX>/media.json
 ```
 
-`session_id` is the Codex/Claude id used to resume that tab. Env override: `ORCA_MEDIA_MAP`.
+`/workspace/codex-sessions/` is the spawn-codex wrapper tree. Each folder’s `status.json` has `"session_id": "<Codex UUID>"`. Do not put `media.json` under the UUID; those folders are not there.
+
+Env override: `ORCA_MEDIA_MAP`.
 
 The **same** document over HTTP on the Orca host (loopback, not public):
 
 ```
-GET /session/<session_id>/media
-PUT /session/<session_id>/media
+GET /session/<id>/media
+PUT /session/<id>/media
 ```
+
+`<id>` is `qaXX` **or** the Codex UUID. UUID resolves by reading `codex-sessions/*/status.json`. One file either way.
 
 Orca UI and the agent both hit this. PUT replaces the buffer. Writers who only append should GET, append one item, PUT. Do not keep an in-app copy that later syncs.
 
@@ -32,7 +36,8 @@ Orca UI and the agent both hit this. PUT replaces the buffer. Writers who only a
 ```json
 {
   "version": 1,
-  "session_id": "0193…",
+  "tab": "qa09",
+  "session_id": "01a00e89-…",
   "items": [
     {
       "id": "qa9-01-red",
