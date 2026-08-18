@@ -8,7 +8,7 @@ import {
   TextInput,
   View
 } from 'react-native'
-import { ArrowUp, ImagePlus, Mic, Square, X } from 'lucide-react-native'
+import { ArrowUp, ImagePlus, Images, Mic, Square, X } from 'lucide-react-native'
 import { colors, radii, spacing, typography } from '../theme/mobile-theme'
 import { getVerifiedNativeChatCommands } from '../../../src/shared/native-chat-agent-profiles'
 import {
@@ -47,6 +47,7 @@ type Props = {
   attachments?: PendingNativeChatImage[]
   onRemoveAttachment?: (id: string) => void
   isAttaching?: boolean
+  onOpenMediaLibrary?: () => void
   onMicPress?: () => void
   micActive?: boolean
   /** Dictation trigger style — 'hold' uses press-in/out, 'toggle' uses tap. */
@@ -66,6 +67,7 @@ export function MobileNativeChatComposer({
   agent,
   sessionOptions,
   onAttachImage,
+  onOpenMediaLibrary,
   attachments = NO_ATTACHMENTS,
   onRemoveAttachment,
   isAttaching = false,
@@ -240,6 +242,16 @@ export function MobileNativeChatComposer({
               />
             ) : null}
             <View style={styles.actionSpacer} />
+            {onOpenMediaLibrary ? (
+              <Pressable
+                accessibilityLabel="Session media"
+                style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}
+                onPress={onOpenMediaLibrary}
+                disabled={disabled}
+              >
+                <Images size={20} color={colors.textSecondary} strokeWidth={2} />
+              </Pressable>
+            ) : null}
             {onMicPress ? (
               <Pressable
                 accessibilityLabel={micActive ? 'Stop dictation' : 'Dictate'}

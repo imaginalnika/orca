@@ -29,6 +29,13 @@ WORKSPACE = File.join(MOBILE_ROOT, "ios", "Orca.xcworkspace")
 BUILD_OUTPUT_DIRECTORY = File.join(MOBILE_ROOT, "build")
 SCHEME = "Orca"
 BUNDLE_ID = "com.stably.orca.mobile"
+INTERNAL_TESTFLIGHT_BUNDLE_ID = "games.imaginal.orca"
+INTERNAL_TESTFLIGHT_APP_NAME = "Orca Internal"
+INTERNAL_TESTFLIGHT_SKU = "orca-internal-ios"
+INTERNAL_TESTFLIGHT_TESTER_EMAILS = [
+  "joshchonpc@gmail.com",
+  "joshchonpc@naver.com",
+].freeze
 TESTFLIGHT_GROUPS = ["peeps"].freeze
 DEFAULT_TESTFLIGHT_CHANGELOG = "Latest Orca Mobile updates and fixes.".freeze
 TESTFLIGHT_PROCESSING_TIMEOUT_SECONDS = 20 * 60
@@ -60,6 +67,17 @@ def app_store_connect_api_key_from_env
     issuer_id: ENV.fetch("ASC_ISSUER_ID"),
     key_content: ENV.fetch("ASC_API_KEY_P8"),
     is_key_content_base64: true,
+    in_house: false,
+  )
+end
+
+def app_store_connect_api_key_from_internal_env
+  key_content = ENV.fetch("APP_STORE_CONNECT_API_KEY").strip
+  app_store_connect_api_key(
+    key_id: ENV.fetch("APP_STORE_CONNECT_API_KEY_ID"),
+    issuer_id: ENV.fetch("APP_STORE_CONNECT_ISSUER_ID"),
+    key_content: key_content,
+    is_key_content_base64: !key_content.include?("BEGIN"),
     in_house: false,
   )
 end
@@ -117,6 +135,57 @@ rescue StandardError => error
   # degraded run must be visible rather than buried.
   UI.error("Could not determine closed App Store versions (#{error.message}); assuming open and proceeding.")
   nil
+end
+
+def ensure_internal_testflight_app_exists!(api_key:, team_id:)
+  app = Spaceship::ConnectAPI::App.find(INTERNAL_TESTFLIGHT_BUNDLE_ID)
+  return app if app
+
+  UI.message("Creating App Store Connect app for #{INTERNAL_TESTFLIGHT_BUNDLE_ID}")
+  produce(
+    api_key: api_key,
+    team_id: team_id,
+    app_identifier: INTERNAL_TESTFLIGHT_BUNDLE_ID,
+    app_name: INTERNAL_TESTFLIGHT_APP_NAME,
+    sku: INTERNAL_TESTFLIGHT_SKU,
+    language: "en-US",
+    platform: "ios",
+  )
+  Spaceship::ConnectAPI::App.find(INTERNAL_TESTFLIGHT_BUNDLE_ID)
+end
+
+def revoke_leftover_ios_distribution_certificates!
+  certificates = Spaceship::ConnectAPI::Certificate.all
+
+  certificates.each do |certificate|
+    certificate_type = certificate.certificate_type.to_s
+    next unless certificate_type.include?("IOS_DISTRIBUTION")
+    next if certificate_type.include?("DEVELOPER_ID") || certificate_type.start_with?("MAC_")
+
+    UI.message("Revoking #{certificate_type} certificate #{certificate.id}")
+    certificate.delete!
+  end
+end
+
+def assign_internal_testers_to_internal_group!(app:)
+  internal_group = app.get_beta_groups.find(&:is_internal_group)
+  UI.user_error!("Could not find an internal TestFlight group for #{INTERNAL_TESTFLIGHT_BUNDLE_ID}") unless internal_group
+
+  testers_by_email = app
+    .get_beta_testers
+    .each_with_object({}) { |tester, memo| memo[tester.email.downcase] = tester }
+  missing_emails = INTERNAL_TESTFLIGHT_TESTER_EMAILS.reject { |email| testers_by_email.key?(email.downcase) }
+  unless missing_emails.empty?
+    UI.user_error!(
+      "Missing internal beta tester(s) in App Store Connect: #{missing_emails.join(', ')}. " \
+      "Ensure they are present as internal testers before rerunning.",
+    )
+  end
+
+  Spaceship::ConnectAPI.post_beta_tester_assignment(
+    beta_group_id: internal_group.id,
+    beta_tester_ids: INTERNAL_TESTFLIGHT_TESTER_EMAILS.map { |email| testers_by_email.fetch(email.downcase).id },
+  )
 end
 
 platform :ios do
@@ -283,5 +352,62 @@ platform :ios do
       version: current_mobile_version(config),
       build_number: config.fetch("expo").fetch("ios").fetch("buildNumber"),
     )
+  end
+
+  desc "Build, sign, and upload Internal TestFlight only"
+  lane :internal_testflight do
+    api_key = app_store_connect_api_key_from_internal_env
+    team_id = ENV.fetch("APPLE_TEAM_ID")
+
+    ensure_internal_testflight_app_exists!(api_key: api_key, team_id: team_id)
+    revoke_leftover_ios_distribution_certificates!
+
+    cert(
+      api_key: api_key,
+      generate_apple_certs: true,
+      force: true,
+      development: false,
+    )
+
+    get_provisioning_profile(
+      api_key: api_key,
+      app_identifier: INTERNAL_TESTFLIGHT_BUNDLE_ID,
+      force: true,
+    )
+    profile_name = lane_context[SharedValues::SIGH_NAME]
+
+    build_app(
+      workspace: WORKSPACE,
+      scheme: SCHEME,
+      configuration: "Release",
+      export_method: "app-store",
+      xcargs: "DEVELOPMENT_TEAM=#{team_id} " \
+        "CODE_SIGN_STYLE=Manual " \
+        "PRODUCT_BUNDLE_IDENTIFIER=#{INTERNAL_TESTFLIGHT_BUNDLE_ID} " \
+        "CODE_SIGN_IDENTITY='Apple Distribution' " \
+        "PROVISIONING_PROFILE_SPECIFIER='#{profile_name}'",
+      export_options: {
+        teamID: team_id,
+        signingStyle: "manual",
+        provisioningProfiles: {
+          INTERNAL_TESTFLIGHT_BUNDLE_ID => profile_name,
+        },
+      },
+      output_directory: BUILD_OUTPUT_DIRECTORY,
+      output_name: "OrcaInternal.ipa",
+      clean: true,
+    )
+
+    upload_to_testflight(
+      api_key: api_key,
+      app_identifier: INTERNAL_TESTFLIGHT_BUNDLE_ID,
+      skip_waiting_for_build_processing: true,
+      distribute_external: false,
+      notify_external_testers: false,
+    )
+
+    app = Spaceship::ConnectAPI::App.find(INTERNAL_TESTFLIGHT_BUNDLE_ID)
+    UI.user_error!("Could not find App Store Connect app #{INTERNAL_TESTFLIGHT_BUNDLE_ID}") unless app
+    assign_internal_testers_to_internal_group!(app: app)
   end
 end

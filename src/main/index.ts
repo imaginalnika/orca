@@ -90,6 +90,7 @@ import {
 } from './runtime/runtime-rpc-startup-failure'
 import { resolveAdvertisedPairingEndpoint } from './runtime/pairing-endpoint'
 import { ServeReadinessPublisher } from './server/serve-readiness'
+import { startSessionMediaMapHttp, stopSessionMediaMapHttp } from './server/session-media-map-http'
 import { reserveServeStdoutForReadiness } from './server/serve-stdout-boundary'
 import { DesktopRelayService } from './runtime/relay/desktop-relay-service'
 import type { RelayBrokerStatus } from './runtime/relay/relay-session-broker'
@@ -3071,6 +3072,12 @@ void app.whenReady().then(async () => {
       : {}),
     webClientRoot: getBundledWebClientRoot()
   })
+  void startSessionMediaMapHttp().catch((error) => {
+    console.warn(
+      '[session-media-map] loopback HTTP did not start:',
+      error instanceof Error ? error.message : String(error)
+    )
+  })
   registerMobileHandlers(runtimeRpc, {
     getRelayStatus: () => desktopRelayStatus,
     consumePendingUnpairedDeviceAuthFailure: (webContentsId) => {
@@ -3268,6 +3275,7 @@ app.on('before-quit', () => {
     })
   }
   isQuitting = true
+  stopSessionMediaMapHttp()
   desktopRelayService?.fenceAndCloseNow()
   runtimeRpc?.setMobileRelayPairingProvider(null)
   unsubscribeAgentAwakeStatusChanges?.()

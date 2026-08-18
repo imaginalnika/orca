@@ -9,6 +9,7 @@ import type { parseAgentQuestion } from './mobile-native-chat-question'
 import type { MobileNativeChatSendOutcome } from './mobile-native-chat-send'
 import type { MobileNativeChatPendingMessage } from './use-mobile-native-chat-drafts'
 import type { useMobileNativeChatSession } from './use-mobile-native-chat-session'
+import type { RpcClient } from '../transport/rpc-client'
 import type { MobileNativeChatSessionOptionPickersProps } from './MobileNativeChatSessionOptionPickers'
 
 export type MobileNativeChatController = {
@@ -19,6 +20,8 @@ export type MobileNativeChatController = {
   showNativeChatRef: MutableRefObject<boolean>
   /** Resolved agent for the active chat tab (names the empty-state copy). */
   nativeChatAgent: string | null
+  nativeChatSessionId: string | null
+  nativeChatClient: RpcClient | null
   chatComposerText: string
   setChatComposerText: Dispatch<SetStateAction<string>>
   chatPending: MobileNativeChatPendingMessage[]
