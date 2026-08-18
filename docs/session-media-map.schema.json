@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Orca session media map",
+  "type": "object",
+  "required": [
+    "version",
+    "tab",
+    "session_id",
+    "items"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "const": 1
+    },
+    "session_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "path",
+          "label",
+          "created_at",
+          "source"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "kind": {
+            "enum": [
+              "video",
+              "image",
+              "audio"
+            ]
+          },
+          "path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "label": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "source": {
+            "enum": [
+              "with-spatula",
+              "agent",
+              "orca"
+            ]
+          }
+        }
+      }
+    },
+    "tab": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Wrapper tab id, e.g. qa09"
+    }
+  }
+}
